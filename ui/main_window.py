@@ -1,15 +1,61 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
-    QVBoxLayout,
+    QListWidget,
+    QListWidgetItem,
     QHBoxLayout,
+    QVBoxLayout,
     QLabel,
     QComboBox,
+    QStackedWidget,
+    QFrame,
 )
 
 from config import APP_NAME, COLORS
-from .app_state import app_state
-from .monatserfassung import MonatsErfassung
+from ui.app_state import app_state
+from ui.dashboard import Dashboard
+from ui.monatserfassung import MonatsErfassung
+
+
+class PlatzhalterSeite(QWidget):
+    def __init__(self, titel):
+        super().__init__()
+
+        self.setStyleSheet(f"""
+            QWidget {{
+                background:{COLORS["hell"]};
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        ueberschrift = QLabel(titel)
+        ueberschrift.setStyleSheet(f"""
+            font-size:30px;
+            font-weight:bold;
+            color:{COLORS["blau"]};
+        """)
+
+        layout.addWidget(ueberschrift)
+
+        box = QFrame()
+        box.setStyleSheet("""
+            background:white;
+            border:1px solid #D8D8D8;
+            border-radius:18px;
+        """)
+
+        box_layout = QVBoxLayout(box)
+
+        text = QLabel("Diese Seite wird im nächsten Release umgesetzt.")
+        text.setAlignment(Qt.AlignCenter)
+        text.setStyleSheet("font-size:18px;color:#777777;")
+
+        box_layout.addWidget(text)
+
+        layout.addWidget(box)
 
 
 class MainWindow(QMainWindow):
@@ -18,64 +64,146 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle(APP_NAME)
-        self.resize(1450, 900)
-
-        self.setStyleSheet(f"""
-            QMainWindow {{
-                background:#1f1f1f;
-            }}
-
-            QLabel {{
-                color:white;
-            }}
-
-            QComboBox {{
-                background:#2b2b2b;
-                color:white;
-                border:1px solid #444;
-                border-radius:6px;
-                padding:5px;
-            }}
-        """)
+        self.resize(1500, 930)
 
         root = QWidget()
         self.setCentralWidget(root)
 
-        layout = QVBoxLayout(root)
-        layout.setContentsMargins(10, 10, 10, 10)
+        hauptlayout = QVBoxLayout(root)
+        hauptlayout.setContentsMargins(0, 0, 0, 0)
+        hauptlayout.setSpacing(0)
 
-        # Kopfzeile
-        kopf = QHBoxLayout()
+        # ===============================
+        # Kopfleiste
+        # ===============================
 
-        titel = QLabel("Fuhrpark-Kostenkontrolle")
-        titel.setStyleSheet(f"""
-            font-size:24px;
-            font-weight:bold;
-            color:{COLORS["orange"]};
+        header = QWidget()
+        header.setStyleSheet(f"""
+            background:{COLORS["blau"]};
+            color:white;
         """)
 
-        kopf.addWidget(titel)
-        kopf.addStretch()
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(18, 12, 18, 12)
+
+        titel = QLabel("Fuhrpark-Kostenkontrolle")
+        titel.setStyleSheet("""
+            color:white;
+            font-size:24px;
+            font-weight:bold;
+        """)
+
+        header_layout.addWidget(titel)
+        header_layout.addStretch()
+
+        monat_label = QLabel("Monat:")
+        monat_label.setStyleSheet("color:white;")
 
         self.monat = QComboBox()
         self.monat.addItems([
-            "Januar","Februar","März","April","Mai","Juni",
-            "Juli","August","September","Oktober","November","Dezember"
+            "Januar", "Februar", "März", "April", "Mai", "Juni",
+            "Juli", "August", "September", "Oktober", "November", "Dezember"
         ])
         self.monat.setCurrentIndex(app_state.monat - 1)
 
+        standort_label = QLabel("Standort:")
+        standort_label.setStyleSheet("color:white;")
+
         self.standort = QComboBox()
-        self.standort.addItems(["Gesamt", "Leipzig", "Ettlingen"])
+        self.standort.addItems([
+            "Gesamt",
+            "Leipzig",
+            "Ettlingen"
+        ])
+        self.standort.setCurrentText(app_state.standort)
 
-        kopf.addWidget(self.monat)
-        kopf.addWidget(self.standort)
+        header_layout.addWidget(monat_label)
+        header_layout.addWidget(self.monat)
+        header_layout.addSpacing(10)
+        header_layout.addWidget(standort_label)
+        header_layout.addWidget(self.standort)
 
-        layout.addLayout(kopf)
+        hauptlayout.addWidget(header)
 
-        # Neue Monatserfassung als Hauptbereich
-        self.erfassung = MonatsErfassung()
-        layout.addWidget(self.erfassung)
+        # ===============================
+        # Hauptbereich
+        # ===============================
+
+        mitte = QHBoxLayout()
+        mitte.setContentsMargins(10, 10, 10, 10)
+        mitte.setSpacing(10)
+
+        # Navigation
+
+        self.menu = QListWidget()
+        self.menu.setMaximumWidth(220)
+
+        self.menu.setStyleSheet(f"""
+            QListWidget {{
+                background:{COLORS["blau"]};
+                color:white;
+                border:none;
+                border-radius:14px;
+                font-size:15px;
+            }}
+
+            QListWidget::item {{
+                padding:14px;
+                margin:4px;
+                border-radius:8px;
+            }}
+
+            QListWidget::item:selected {{
+                background:{COLORS["orange"]};
+                color:black;
+                font-weight:bold;
+            }}
+        """)
+
+        menupunkte = [
+            "🏠 Dashboard",
+            "🚛 Fahrzeuge",
+            "🔗 Trailer",
+            "📅 Monatserfassung",
+            "💰 Einmalkosten",
+            "📊 Management",
+            "⚙ Einstellungen",
+        ]
+
+        for punkt in menupunkte:
+            self.menu.addItem(QListWidgetItem(punkt))
+
+        mitte.addWidget(self.menu)
+
+        # Seiten
+
+        self.stack = QStackedWidget()
+
+        self.dashboard = Dashboard()
+        self.fahrzeuge = PlatzhalterSeite("Fahrzeuge")
+        self.trailer = PlatzhalterSeite("Trailer")
+        self.monatserfassung = MonatsErfassung()
+        self.einmalkosten = PlatzhalterSeite("Einmalkosten")
+        self.management = PlatzhalterSeite("Management")
+        self.einstellungen = PlatzhalterSeite("Einstellungen")
+
+        self.stack.addWidget(self.dashboard)          # Index 0
+        self.stack.addWidget(self.fahrzeuge)          # Index 1
+        self.stack.addWidget(self.trailer)            # Index 2
+        self.stack.addWidget(self.monatserfassung)    # Index 3
+        self.stack.addWidget(self.einmalkosten)       # Index 4
+        self.stack.addWidget(self.management)         # Index 5
+        self.stack.addWidget(self.einstellungen)      # Index 6
+
+        self.menu.currentRowChanged.connect(self.stack.setCurrentIndex)
+
+        # Dashboard beim Start
+        self.menu.setCurrentRow(0)
+
+        mitte.addWidget(self.stack)
+
+        hauptlayout.addLayout(mitte)
 
         self.statusBar().showMessage(
-            f"September {app_state.jahr} | Gesamt | In Bearbeitung"
+            f"September {app_state.jahr} | {app_state.standort} | In Bearbeitung"
         )

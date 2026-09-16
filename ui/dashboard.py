@@ -1,38 +1,13 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QGridLayout, QFrame
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QFrame,
+)
 
 from config import COLORS
-
-
-class KPIBox(QFrame):
-
-    def __init__(self, titel, wert):
-        super().__init__()
-
-        self.setStyleSheet(f"""
-            QFrame{{
-                background:white;
-                border-radius:14px;
-                border:1px solid #d8d8d8;
-            }}
-        """)
-
-        layout = QVBoxLayout(self)
-
-        t = QLabel(titel)
-        t.setAlignment(Qt.AlignCenter)
-        t.setStyleSheet("color:gray;font-size:12px;")
-
-        w = QLabel(str(wert))
-        w.setAlignment(Qt.AlignCenter)
-        w.setStyleSheet(f"""
-            color:{COLORS["blau"]};
-            font-size:24px;
-            font-weight:bold;
-        """)
-
-        layout.addWidget(t)
-        layout.addWidget(w)
 
 
 class Dashboard(QWidget):
@@ -40,55 +15,84 @@ class Dashboard(QWidget):
     def __init__(self):
         super().__init__()
 
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(20, 20, 20, 20)
-        outer.setSpacing(20)
+        self.setStyleSheet(f"""
+            QWidget {{
+                background:{COLORS["hell"]};
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(20)
 
         titel = QLabel("Dashboard")
         titel.setStyleSheet(f"""
-            color:{COLORS["blau"]};
             font-size:28px;
             font-weight:bold;
+            color:{COLORS["blau"]};
         """)
 
-        outer.addWidget(titel)
+        layout.addWidget(titel)
 
-        grid = QGridLayout()
+        kpis = QHBoxLayout()
+        kpis.setSpacing(15)
 
-        grid.addWidget(KPIBox("Fahrzeuge", "--"), 0, 0)
-        grid.addWidget(KPIBox("Trailer", "--"), 0, 1)
-        grid.addWidget(KPIBox("Fahrer", "--"), 0, 2)
-        grid.addWidget(KPIBox("Erlös", "-- €"), 0, 3)
+        self.fahrzeuge = self.karte("Fahrzeuge", "--")
+        self.trailer = self.karte("Trailer", "--")
+        self.fahrer = self.karte("Fahrer", "--")
+        self.umsatz = self.karte("Umsatz", "-- €")
 
-        outer.addLayout(grid)
+        kpis.addWidget(self.fahrzeuge)
+        kpis.addWidget(self.trailer)
+        kpis.addWidget(self.fahrer)
+        kpis.addWidget(self.umsatz)
 
-        bereich = QFrame()
+        layout.addLayout(kpis)
 
-        bereich.setStyleSheet("""
-            QFrame{
-                background:white;
-                border-radius:14px;
-                border:1px solid #d8d8d8;
-            }
+        diagramm = QFrame()
+        diagramm.setStyleSheet("""
+            background:white;
+            border:1px solid #D8D8D8;
+            border-radius:18px;
         """)
 
-        inhalt = QVBoxLayout(bereich)
+        d = QVBoxLayout(diagramm)
 
-        txt = QLabel(
-            "Hier erscheinen später:\n\n"
-            "• Managementübersicht\n"
-            "• Diagramme\n"
-            "• Kostenentwicklung\n"
-            "• Standortvergleich"
-        )
+        text = QLabel("Diagramme und Auswertungen (v0.6)")
+        text.setAlignment(Qt.AlignCenter)
+        text.setStyleSheet("font-size:18px;color:#777777;")
 
-        txt.setAlignment(Qt.AlignTop)
+        d.addWidget(text)
 
-        txt.setStyleSheet("""
-            font-size:15px;
-            padding:10px;
+        layout.addWidget(diagramm)
+
+    def karte(self, titel, wert):
+
+        frame = QFrame()
+
+        frame.setMinimumHeight(110)
+
+        frame.setStyleSheet("""
+            background:white;
+            border:1px solid #DDDDDD;
+            border-radius:18px;
         """)
 
-        inhalt.addWidget(txt)
+        layout = QVBoxLayout(frame)
 
-        outer.addWidget(bereich, 1)
+        oben = QLabel(titel)
+        oben.setStyleSheet("font-size:13px;color:#666666;")
+
+        mitte = QLabel(wert)
+        mitte.setAlignment(Qt.AlignCenter)
+
+        mitte.setStyleSheet("""
+            font-size:30px;
+            font-weight:bold;
+            color:#17365D;
+        """)
+
+        layout.addWidget(oben)
+        layout.addWidget(mitte)
+
+        return frame

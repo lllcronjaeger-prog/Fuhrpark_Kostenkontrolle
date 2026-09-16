@@ -5,55 +5,65 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
     QLabel,
+    QFrame,
     QTableWidget,
     QTableWidgetItem,
-    QFrame,
-    QSizePolicy,
+    QHeaderView,
 )
 
 from config import COLORS
 
 
 class MonatsErfassung(QWidget):
+
     def __init__(self):
         super().__init__()
 
         self.setStyleSheet(f"""
             QWidget {{
-                background:#1f1f1f;
-                color:white;
+                background:{COLORS["hell"]};
             }}
 
             QTableWidget {{
-                background:#252525;
-                gridline-color:#333333;
-                border:none;
+                background:white;
+                color:#202020;
+                alternate-background-color:#F8F8F8;
+                gridline-color:#DADADA;
+                border:1px solid #DADADA;
+                selection-background-color:{COLORS["orange"]};
+                selection-color:black;
                 font-size:13px;
             }}
 
             QHeaderView::section {{
-                background:#2d2d2d;
-                color:white;
+                background:#ECECEC;
+                color:#17365D;
+                font-weight:bold;
                 border:none;
-                padding:6px;
+                padding:8px;
+            }}
+
+            QTableCornerButton::section {{
+                background:#ECECEC;
+                border:none;
             }}
         """)
 
         haupt = QHBoxLayout(self)
-        haupt.setContentsMargins(8,8,8,8)
+        haupt.setContentsMargins(20,20,20,20)
+        haupt.setSpacing(20)
 
-        # -------------------------------------
-        # Tabelle
-        # -------------------------------------
+        # ---------- Linke Seite ----------
 
         links = QVBoxLayout()
+        links.setSpacing(15)
 
         titel = QLabel("Monatserfassung")
 
         titel.setStyleSheet(f"""
-            font-size:24px;
+            font-size:30px;
             font-weight:bold;
-            color:{COLORS["orange"]};
+            color:{COLORS["blau"]};
         """)
 
         links.addWidget(titel)
@@ -70,6 +80,13 @@ class MonatsErfassung(QWidget):
             "KM"
         ])
 
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(34)
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+
         fahrzeuge = [
             "KA-LL 8031",
             "KA-LL 8032",
@@ -80,12 +97,14 @@ class MonatsErfassung(QWidget):
             "Σ Summe"
         ]
 
-        for zeile,name in enumerate(fahrzeuge):
+        for zeile, name in enumerate(fahrzeuge):
 
             item = QTableWidgetItem(name)
 
+            item.setForeground(QColor("#202020"))
+
             if "Zusatz" in name:
-                item.setBackground(QColor("#24415c"))
+                item.setBackground(QColor("#D9EAF7"))
 
             if name.startswith("Σ"):
                 item.setBackground(QColor(COLORS["orange"]))
@@ -93,74 +112,62 @@ class MonatsErfassung(QWidget):
 
             self.table.setItem(zeile,0,item)
 
-        self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding
-        )
-
         self.table.itemChanged.connect(self.berechne_summen)
 
         links.addWidget(self.table)
 
         haupt.addLayout(links,4)
 
-        # -------------------------------------
-        # Kontrollbereich
-        # -------------------------------------
+        # ---------- Rechte Seite ----------
 
         rechts = QVBoxLayout()
+        rechts.setSpacing(15)
 
-        rechts.addWidget(self.karte("Diesel",0))
-        rechts.addWidget(self.karte("Maut",1))
-        rechts.addWidget(self.karte("Werkstatt",2))
-        rechts.addWidget(self.karte("Sonstiges",3))
-        rechts.addWidget(self.karte("Umsatz",4))
-        rechts.addWidget(self.karte("KM",5))
+        self.labels = []
+
+        for text in [
+            "Diesel",
+            "Maut",
+            "Werkstatt",
+            "Sonstiges",
+            "Umsatz",
+            "KM"
+        ]:
+
+            frame = QFrame()
+
+            frame.setMinimumHeight(85)
+
+            frame.setStyleSheet("""
+                background:white;
+                border:1px solid #DDDDDD;
+                border-radius:16px;
+            """)
+
+            l = QVBoxLayout(frame)
+
+            oben = QLabel(text)
+            oben.setStyleSheet("font-size:12px;font-weight:bold;color:#666666;")
+
+            wert = QLabel("0")
+            wert.setAlignment(Qt.AlignCenter)
+
+            wert.setStyleSheet(f"""
+                font-size:24px;
+                font-weight:bold;
+                color:{COLORS["blau"]};
+            """)
+
+            l.addWidget(oben)
+            l.addWidget(wert)
+
+            self.labels.append(wert)
+
+            rechts.addWidget(frame)
 
         rechts.addStretch()
 
         haupt.addLayout(rechts,1)
-
-    # -----------------------------------------
-
-    def karte(self,name,index):
-
-        frame = QFrame()
-
-        frame.setFrameShape(QFrame.StyledPanel)
-
-        frame.setStyleSheet("""
-            QFrame{
-                background:#2b2b2b;
-                border-radius:12px;
-            }
-        """)
-
-        layout = QVBoxLayout(frame)
-
-        oben = QLabel(name)
-
-        oben.setStyleSheet("font-weight:bold;")
-
-        wert = QLabel("0")
-
-        wert.setObjectName(f"kpi_{index}")
-
-        wert.setAlignment(Qt.AlignCenter)
-
-        wert.setStyleSheet("""
-            font-size:22px;
-            font-weight:bold;
-        """)
-
-        layout.addWidget(oben)
-        layout.addWidget(wert)
-
-        return frame
-
-    # -----------------------------------------
 
     def berechne_summen(self):
 
@@ -172,34 +179,25 @@ class MonatsErfassung(QWidget):
 
             for zeile in range(6):
 
-                item = self.table.item(zeile,spalte)
+                item = self.table.item(zeile, spalte)
 
-                if not item:
-                    continue
+                if item:
+                    try:
+                        gesamt += float(item.text().replace(",", "."))
+                    except ValueError:
+                        pass
 
-                text = item.text().replace(",", ".")
+            text = f"{gesamt:,.0f}".replace(",", ".")
 
-                try:
-                    gesamt += float(text)
-                except:
-                    pass
+            if spalte == 6:
+                self.labels[5].setText(text + " km")
+            else:
+                self.labels[spalte-1].setText(text + " €")
 
-            sum_item = QTableWidgetItem(f"{gesamt:,.0f}".replace(",", "."))
+            summe = QTableWidgetItem(text)
+            summe.setBackground(QColor(COLORS["orange"]))
+            summe.setForeground(QColor("black"))
 
-            sum_item.setBackground(QColor(COLORS["orange"]))
-            sum_item.setForeground(QColor("black"))
-
-            self.table.setItem(6,spalte,sum_item)
-
-            label = self.findChild(QLabel,f"kpi_{spalte-1}")
-
-            if label:
-
-                if spalte==6:
-                    label.setText(f"{gesamt:,.0f} km".replace(",", "."))
-                elif spalte==5:
-                    label.setText(f"{gesamt:,.0f} €".replace(",", "."))
-                else:
-                    label.setText(f"{gesamt:,.0f} €".replace(",", "."))
+            self.table.setItem(6, spalte, summe)
 
         self.table.blockSignals(False)
