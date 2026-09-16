@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtuelle Umgebung
+.venv/
+
+# VS Code
+.vscode/
+
+# Datenbank
+data/
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Backups
+Backups/
+
+# Exporte
+Exporte/
