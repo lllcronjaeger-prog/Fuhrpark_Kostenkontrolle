@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QWidget,
@@ -15,6 +15,8 @@ from config import COLORS
 
 
 class MonatsErfassung(QWidget):
+
+    kpisChanged = Signal(dict)
 
     def __init__(self):
         super().__init__()
@@ -35,6 +37,22 @@ class MonatsErfassung(QWidget):
                 font-size:13px;
             }}
 
+            QTableWidget::item {{
+                color:#202020;
+            }}
+
+            QTableWidget::item:selected {{
+                color:black;
+                background:{COLORS["orange"]};
+            }}
+
+            QLineEdit {{
+                color:#202020;
+                background:white;
+                selection-background-color:{COLORS["orange"]};
+                selection-color:black;
+            }}
+
             QHeaderView::section {{
                 background:#ECECEC;
                 color:#17365D;
@@ -42,18 +60,11 @@ class MonatsErfassung(QWidget):
                 border:none;
                 padding:8px;
             }}
-
-            QTableCornerButton::section {{
-                background:#ECECEC;
-                border:none;
-            }}
         """)
 
         haupt = QHBoxLayout(self)
         haupt.setContentsMargins(20,20,20,20)
         haupt.setSpacing(20)
-
-        # ---------- Linke Seite ----------
 
         links = QVBoxLayout()
         links.setSpacing(15)
@@ -100,7 +111,6 @@ class MonatsErfassung(QWidget):
         for zeile, name in enumerate(fahrzeuge):
 
             item = QTableWidgetItem(name)
-
             item.setForeground(QColor("#202020"))
 
             if "Zusatz" in name:
@@ -117,8 +127,6 @@ class MonatsErfassung(QWidget):
         links.addWidget(self.table)
 
         haupt.addLayout(links,4)
-
-        # ---------- Rechte Seite ----------
 
         rechts = QVBoxLayout()
         rechts.setSpacing(15)
@@ -173,6 +181,24 @@ class MonatsErfassung(QWidget):
 
         self.table.blockSignals(True)
 
+        daten = {
+            "Diesel":0,
+            "Maut":0,
+            "Werkstatt":0,
+            "Sonstiges":0,
+            "Umsatz":0,
+            "KM":0
+        }
+
+        namen = [
+            "Diesel",
+            "Maut",
+            "Werkstatt",
+            "Sonstiges",
+            "Umsatz",
+            "KM"
+        ]
+
         for spalte in range(1,7):
 
             gesamt = 0
@@ -186,6 +212,8 @@ class MonatsErfassung(QWidget):
                         gesamt += float(item.text().replace(",", "."))
                     except ValueError:
                         pass
+
+            daten[namen[spalte-1]] = gesamt
 
             text = f"{gesamt:,.0f}".replace(",", ".")
 
@@ -201,3 +229,5 @@ class MonatsErfassung(QWidget):
             self.table.setItem(6, spalte, summe)
 
         self.table.blockSignals(False)
+
+        self.kpisChanged.emit(daten)
