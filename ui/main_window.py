@@ -1,5 +1,5 @@
 """
-Release: v0.6.0
+Release: v0.6.3
 Datei: ui/main_window.py
 Komplette Datei
 """
@@ -225,9 +225,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.management)         # 5
         self.stack.addWidget(self.einstellungen)      # 6
 
-        self.menu.currentRowChanged.connect(
-            self.stack.setCurrentIndex
-        )
+        self.menu.currentRowChanged.connect(self.seite_gewechselt)
 
         self.menu.setCurrentRow(0)
 
@@ -240,3 +238,16 @@ class MainWindow(QMainWindow):
             f"{app_state.standort} | "
             "In Bearbeitung"
         )
+
+    # =====================================================
+    # Seitenwechsel
+    # =====================================================
+
+    def seite_gewechselt(self, index):
+        """Reagiert auf einen Wechsel des Menüpunktes."""
+
+        self.stack.setCurrentIndex(index)
+
+        # Monatserfassung immer synchronisieren
+        if index == 3:
+            self.monatserfassung.aktualisieren()

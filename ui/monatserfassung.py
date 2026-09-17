@@ -1,5 +1,5 @@
 """
-Release: v0.6.2
+Release: v0.6.3
 Datei: ui/monatserfassung.py
 Komplette Datei
 """
@@ -7,14 +7,8 @@ Komplette Datei
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QFrame,
-    QTableWidget,
-    QTableWidgetItem,
-    QHeaderView,
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame,
+    QTableWidget, QTableWidgetItem, QHeaderView
 )
 
 from config import COLORS
@@ -33,11 +27,9 @@ class MonatsErfassung(QWidget):
         self.session = SessionLocal()
 
         self.setStyleSheet(f"""
-            QWidget {{
-                background:{COLORS["hell"]};
-            }}
+            QWidget{{background:{COLORS["hell"]};}}
 
-            QTableWidget {{
+            QTableWidget{{
                 background:white;
                 color:#202020;
                 alternate-background-color:#F8F8F8;
@@ -45,65 +37,45 @@ class MonatsErfassung(QWidget):
                 border:1px solid #DADADA;
                 selection-background-color:{COLORS["orange"]};
                 selection-color:black;
-                font-size:13px;
             }}
 
-            QTableWidget::item {{
-                color:#202020;
-            }}
+            QTableWidget::item{{color:#202020;}}
 
-            QLineEdit {{
-                color:#202020;
-                background:white;
-            }}
-
-            QHeaderView::section {{
+            QHeaderView::section{{
                 background:#ECECEC;
                 color:#17365D;
                 font-weight:bold;
-                border:none;
                 padding:8px;
+                border:none;
             }}
         """)
 
-        self.monat = self.hole_oder_erzeuge_monat()
+        self.monat = None
 
         haupt = QHBoxLayout(self)
         haupt.setContentsMargins(20,20,20,20)
         haupt.setSpacing(20)
 
-        # ---------------- Tabelle ----------------
-
         links = QVBoxLayout()
 
         titel = QLabel("Monatserfassung")
-
         titel.setStyleSheet(f"""
             font-size:30px;
             font-weight:bold;
             color:{COLORS["blau"]};
         """)
-
         links.addWidget(titel)
 
         self.table = QTableWidget(0,7)
-
         self.table.setHorizontalHeaderLabels([
-            "Fahrzeug",
-            "Diesel",
-            "Maut",
-            "Werkstatt",
-            "Sonstiges",
-            "Umsatz",
-            "KM"
+            "Fahrzeug","Diesel","Maut","Werkstatt",
+            "Sonstiges","Umsatz","KM"
         ])
 
-        self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(34)
-
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setAlternatingRowColors(True)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.table.itemChanged.connect(self.speichern_und_berechnen)
 
@@ -111,23 +83,15 @@ class MonatsErfassung(QWidget):
 
         haupt.addLayout(links,4)
 
-        # ---------------- KPI ----------------
-
         rechts = QVBoxLayout()
-
-        self.labels = []
+        self.labels=[]
 
         for name in [
-            "Diesel",
-            "Maut",
-            "Werkstatt",
-            "Sonstiges",
-            "Umsatz",
-            "KM"
+            "Diesel","Maut","Werkstatt",
+            "Sonstiges","Umsatz","KM"
         ]:
 
-            frame = QFrame()
-
+            frame=QFrame()
             frame.setMinimumHeight(85)
 
             frame.setStyleSheet("""
@@ -136,14 +100,13 @@ class MonatsErfassung(QWidget):
                 border-radius:16px;
             """)
 
-            l = QVBoxLayout(frame)
+            l=QVBoxLayout(frame)
 
-            oben = QLabel(name)
+            oben=QLabel(name)
             oben.setStyleSheet("font-size:12px;font-weight:bold;color:#666666;")
 
-            wert = QLabel("0")
+            wert=QLabel("0")
             wert.setAlignment(Qt.AlignCenter)
-
             wert.setStyleSheet(f"""
                 font-size:24px;
                 font-weight:bold;
@@ -154,20 +117,60 @@ class MonatsErfassung(QWidget):
             l.addWidget(wert)
 
             self.labels.append(wert)
-
             rechts.addWidget(frame)
 
         rechts.addStretch()
 
         haupt.addLayout(rechts,1)
 
+        self.aktualisieren()
+
+    # -----------------------------------------------------
+
+    def aktualisieren(self):
+        """Synchronisiert den aktuellen Monat mit allen aktiven Fahrzeugen."""
+
+        self.monat = self._hole_monat()
+
+        aktive = (
+            self.session.query(Fahrzeug)
+            .filter_by(aktiv=True)
+            .order_by(Fahrzeug.sortierung)
+            .all()
+        )
+
+        vorhanden = {
+            d.fahrzeug_id
+            for d in self.session.query(Monatsdaten)
+            .filter_by(monat_id=self.monat.id)
+            .all()
+        }
+
+        geaendert=False
+
+        for fahrzeug in aktive:
+
+            if fahrzeug.id not in vorhanden:
+
+                self.session.add(
+                    Monatsdaten(
+                        fahrzeug_id=fahrzeug.id,
+                        monat_id=self.monat.id
+                    )
+                )
+
+                geaendert=True
+
+        if geaendert:
+            self.session.commit()
+
         self.laden()
 
     # -----------------------------------------------------
 
-    def hole_oder_erzeuge_monat(self):
+    def _hole_monat(self):
 
-        monat = self.session.query(Monat).filter_by(
+        monat=self.session.query(Monat).filter_by(
             jahr=app_state.jahr,
             monat=app_state.monat
         ).first()
@@ -175,30 +178,12 @@ class MonatsErfassung(QWidget):
         if monat:
             return monat
 
-        monat = Monat(
+        monat=Monat(
             jahr=app_state.jahr,
             monat=app_state.monat
         )
 
         self.session.add(monat)
-        self.session.commit()
-
-        fahrzeuge = (
-            self.session.query(Fahrzeug)
-            .filter_by(aktiv=True)
-            .order_by(Fahrzeug.sortierung)
-            .all()
-        )
-
-        for fahrzeug in fahrzeuge:
-
-            self.session.add(
-                Monatsdaten(
-                    fahrzeug_id=fahrzeug.id,
-                    monat_id=monat.id
-                )
-            )
-
         self.session.commit()
 
         return monat
@@ -208,33 +193,32 @@ class MonatsErfassung(QWidget):
     def laden(self):
 
         self.table.blockSignals(True)
-
         self.table.setRowCount(0)
 
-        daten = (
+        daten=(
             self.session.query(Monatsdaten)
             .join(Fahrzeug)
-            .filter(Monatsdaten.monat_id == self.monat.id)
+            .filter(Monatsdaten.monat_id==self.monat.id)
             .order_by(Fahrzeug.sortierung)
             .all()
         )
 
         for ds in daten:
 
-            r = self.table.rowCount()
+            r=self.table.rowCount()
             self.table.insertRow(r)
 
-            name = ds.fahrzeug.kennzeichen
+            name=ds.fahrzeug.kennzeichen
 
-            if ds.fahrzeug.fahreranzahl == 2:
-                name += " (2 Fahrer)"
+            if ds.fahrzeug.fahreranzahl==2:
+                name+=" (2 Fahrer)"
 
-            item = QTableWidgetItem(name)
-            item.setData(Qt.UserRole, ds.id)
+            item=QTableWidgetItem(name)
+            item.setData(Qt.UserRole,ds.id)
 
             self.table.setItem(r,0,item)
 
-            werte = [
+            werte=[
                 ds.diesel,
                 ds.maut,
                 ds.werkstatt,
@@ -245,30 +229,10 @@ class MonatsErfassung(QWidget):
 
             for s,w in enumerate(werte,start=1):
 
-                z = QTableWidgetItem(
-                    "" if w == 0 else str(int(w))
-                )
-
-                z.setData(Qt.UserRole, ds.id)
+                z=QTableWidgetItem("" if w==0 else str(int(w)))
+                z.setData(Qt.UserRole,ds.id)
 
                 self.table.setItem(r,s,z)
-
-        # Zusatzzeilen
-
-        for text in [
-            "👤 Zusatzfahrer",
-            "🚛 Zusatztrailer"
-        ]:
-
-            r = self.table.rowCount()
-
-            self.table.insertRow(r)
-
-            item = QTableWidgetItem(text)
-
-            item.setBackground(QColor("#D9EAF7"))
-
-            self.table.setItem(r,0,item)
 
         self.table.blockSignals(False)
 
@@ -278,14 +242,15 @@ class MonatsErfassung(QWidget):
 
     def speichern_und_berechnen(self,item):
 
-        ds_id = item.data(Qt.UserRole)
+        ds=self.session.get(
+            Monatsdaten,
+            item.data(Qt.UserRole)
+        )
 
-        if ds_id is None:
+        if ds is None:
             return
 
-        ds = self.session.get(Monatsdaten,ds_id)
-
-        mapping = {
+        mapping={
             1:"diesel",
             2:"maut",
             3:"werkstatt",
@@ -298,9 +263,9 @@ class MonatsErfassung(QWidget):
             return
 
         try:
-            wert = float(item.text().replace(",","."))
+            wert=float(item.text().replace(",","."))
         except:
-            wert = 0
+            wert=0
 
         setattr(ds,mapping[item.column()],wert)
 
@@ -312,13 +277,11 @@ class MonatsErfassung(QWidget):
 
     def berechne_kpis(self):
 
-        daten = (
-            self.session.query(Monatsdaten)
-            .filter_by(monat_id=self.monat.id)
-            .all()
-        )
+        daten=self.session.query(Monatsdaten).filter_by(
+            monat_id=self.monat.id
+        ).all()
 
-        kpi = {
+        kpi={
             "Diesel":0,
             "Maut":0,
             "Werkstatt":0,
@@ -328,13 +291,12 @@ class MonatsErfassung(QWidget):
         }
 
         for d in daten:
-
-            kpi["Diesel"] += d.diesel
-            kpi["Maut"] += d.maut
-            kpi["Werkstatt"] += d.werkstatt
-            kpi["Sonstiges"] += d.sonstiges
-            kpi["Umsatz"] += d.umsatz
-            kpi["KM"] += d.kilometer
+            kpi["Diesel"]+=d.diesel
+            kpi["Maut"]+=d.maut
+            kpi["Werkstatt"]+=d.werkstatt
+            kpi["Sonstiges"]+=d.sonstiges
+            kpi["Umsatz"]+=d.umsatz
+            kpi["KM"]+=d.kilometer
 
         self.labels[0].setText(f"{kpi['Diesel']:,.0f} €".replace(",","."))
         self.labels[1].setText(f"{kpi['Maut']:,.0f} €".replace(",","."))
