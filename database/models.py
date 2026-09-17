@@ -1,7 +1,7 @@
 """
-Release: v0.6.0
+Release: v0.6.4
 Datei: database/models.py
-Ersetzt: komplette Datei
+Komplette Datei
 """
 
 from datetime import date
@@ -29,19 +29,23 @@ class Fahrzeug(Base):
 
     id = Column(Integer, primary_key=True)
 
-    sortierung = Column(Integer, default=100, nullable=False)
+    sortierung = Column(Integer, default=100)
 
     kennzeichen = Column(String, unique=True, nullable=False)
 
     fahrzeugtyp = Column(String, default="Sattelzugmaschine")
 
-    standort = Column(String, default="Leipzig")
+    standort = Column(String, nullable=False)
 
     fahreranzahl = Column(Integer, default=1)
 
     trailer_kategorie = Column(String, default="Standard")
 
+    trailer_id = Column(Integer, ForeignKey("trailer.id"), nullable=True)
+
     aktiv = Column(Boolean, default=True)
+
+    trailer = relationship("Trailer", back_populates="fahrzeuge")
 
     monatsdaten = relationship(
         "Monatsdaten",
@@ -49,8 +53,6 @@ class Fahrzeug(Base):
         cascade="all, delete-orphan",
     )
 
-    def __repr__(self):
-        return f"<Fahrzeug {self.kennzeichen}>"
 
 # ==========================================================
 # Trailer
@@ -61,11 +63,11 @@ class Trailer(Base):
 
     id = Column(Integer, primary_key=True)
 
-    kennzeichen = Column(String, unique=True, nullable=False)
+    bezeichnung = Column(String, nullable=False)
+
+    standort = Column(String, nullable=False)
 
     kategorie = Column(String, default="Standard")
-
-    standort = Column(String, default="Leipzig")
 
     vertragsbeginn = Column(Date)
 
@@ -75,11 +77,11 @@ class Trailer(Base):
 
     aktiv = Column(Boolean, default=True)
 
-    def __repr__(self):
-        return f"<Trailer {self.kennzeichen}>"
+    fahrzeuge = relationship("Fahrzeug", back_populates="trailer")
+
 
 # ==========================================================
-# Monate
+# Monat
 # ==========================================================
 
 class Monat(Base):
@@ -99,17 +101,21 @@ class Monat(Base):
 
     abgeschlossen_von = Column(String)
 
-    daten = relationship(
+    monatsdaten = relationship(
         "Monatsdaten",
         back_populates="monat",
         cascade="all, delete-orphan",
     )
 
-    def __repr__(self):
-        return f"<Monat {self.monat}/{self.jahr}>"
+    kennzahlen = relationship(
+        "MonatsKennzahlen",
+        back_populates="monat",
+        cascade="all, delete-orphan",
+    )
+
 
 # ==========================================================
-# Monatsdaten pro Fahrzeug
+# Monatsdaten (je Fahrzeug)
 # ==========================================================
 
 class Monatsdaten(Base):
@@ -135,10 +141,11 @@ class Monatsdaten(Base):
 
     fahrzeug = relationship("Fahrzeug", back_populates="monatsdaten")
 
-    monat = relationship("Monat", back_populates="daten")
+    monat = relationship("Monat", back_populates="monatsdaten")
+
 
 # ==========================================================
-# Zusatzfahrer / Zusatztrailer
+# Monatskennzahlen
 # ==========================================================
 
 class MonatsKennzahlen(Base):
@@ -150,6 +157,8 @@ class MonatsKennzahlen(Base):
 
     standort = Column(String, default="Gesamt")
 
+    # Zahlen, Daten, Fakten
+
     zusatzfahrer = Column(Integer, default=0)
 
     zusatztrailer = Column(Integer, default=0)
@@ -157,6 +166,9 @@ class MonatsKennzahlen(Base):
     durchschnitt_fahrer_kosten = Column(Float, default=0)
 
     durchschnitt_trailer_kosten = Column(Float, default=0)
+
+    monat = relationship("Monat", back_populates="kennzahlen")
+
 
 # ==========================================================
 # Einmalkosten
@@ -174,20 +186,3 @@ class Einmalkosten(Base):
     bezeichnung = Column(String)
 
     betrag = Column(Float, default=0)
-
-# ==========================================================
-# Durchschnittskosten je Standort
-# ==========================================================
-
-class StandortKosten(Base):
-    __tablename__ = "standortkosten"
-
-    id = Column(Integer, primary_key=True)
-
-    standort = Column(String, unique=True)
-
-    durchschnitt_fahrer = Column(Float, default=0)
-
-    durchschnitt_trailer = Column(Float, default=0)
-
-    aktualisiert_am = Column(Date, default=date.today)
