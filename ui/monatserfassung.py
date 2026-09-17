@@ -7,8 +7,16 @@ Komplette Datei
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame,
-    QTableWidget, QTableWidgetItem, QHeaderView
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QLabel,
+    QFrame,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QStyledItemDelegate,
+    QLineEdit,
 )
 
 from config import COLORS
@@ -16,7 +24,24 @@ from database.database import SessionLocal
 from database.models import Fahrzeug, Monat, Monatsdaten
 from ui.app_state import app_state
 
+class DunklerEditor(QStyledItemDelegate):
+    """
+    Sorgt dafür, dass Tabellenzellen beim Bearbeiten
+    schwarze Schrift auf weißem Hintergrund haben.
+    """
 
+    def createEditor(self, parent, option, index):
+        editor = QLineEdit(parent)
+        editor.setStyleSheet("""
+            QLineEdit{
+                color:#202020;
+                background:white;
+                selection-color:black;
+                selection-background-color:#FFD27A;
+            }
+        """)
+        return editor
+    
 class MonatsErfassung(QWidget):
 
     kpisChanged = Signal(dict)
