@@ -1,10 +1,11 @@
 """
-Release: v0.6.0
+Release: v0.6.1
 Datei: ui/dialogs/fahrzeug_dialog.py
 Komplette Datei
 """
 
-from PySide6.QtCore import Qt
+from sqlalchemy import func
+
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -19,6 +20,8 @@ from PySide6.QtWidgets import (
 )
 
 from config import COLORS
+from database.database import SessionLocal
+from database.models import Fahrzeug
 
 
 class FahrzeugDialog(QDialog):
@@ -30,6 +33,7 @@ class FahrzeugDialog(QDialog):
         super().__init__(parent)
 
         self.fahrzeug = fahrzeug
+        self.session = SessionLocal()
 
         self.setWindowTitle("Fahrzeug")
         self.resize(500, 520)
@@ -56,6 +60,15 @@ class FahrzeugDialog(QDialog):
                 min-height:28px;
             }}
 
+            /* Geöffnetes Dropdown */
+            QComboBox QAbstractItemView {{
+                background:white;
+                color:#202020;
+                selection-background-color:{COLORS["orange"]};
+                selection-color:black;
+                border:1px solid #C8C8C8;
+            }}
+
             QPushButton {{
                 border:none;
                 border-radius:10px;
@@ -68,6 +81,8 @@ class FahrzeugDialog(QDialog):
 
         if self.fahrzeug:
             self._laden()
+        else:
+            self._naechste_sortierung()
 
     # -----------------------------------------------------
 
@@ -77,7 +92,12 @@ class FahrzeugDialog(QDialog):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(16)
 
-        titel = QLabel("Fahrzeug bearbeiten" if self.fahrzeug else "Neues Fahrzeug")
+        titel = QLabel(
+            "Fahrzeug bearbeiten"
+            if self.fahrzeug
+            else "Neues Fahrzeug"
+        )
+
         titel.setStyleSheet(f"""
             font-size:24px;
             color:{COLORS["blau"]};
@@ -92,7 +112,6 @@ class FahrzeugDialog(QDialog):
 
         self.sortierung = QSpinBox()
         self.sortierung.setRange(1, 9999)
-        self.sortierung.setValue(100)
 
         layout.addWidget(self.sortierung)
 
@@ -114,7 +133,7 @@ class FahrzeugDialog(QDialog):
             "Sattelzugmaschine",
             "Wechselbrücke",
             "Transporter",
-            "Sonstiges"
+            "Sonstiges",
         ])
 
         layout.addWidget(self.fahrzeugtyp)
@@ -128,12 +147,12 @@ class FahrzeugDialog(QDialog):
 
         self.standort.addItems([
             "Leipzig",
-            "Ettlingen"
+            "Ettlingen",
         ])
 
         layout.addWidget(self.standort)
 
-        # Fahrer
+        # Fahreranzahl
 
         layout.addWidget(QLabel("Fahreranzahl"))
 
@@ -142,7 +161,7 @@ class FahrzeugDialog(QDialog):
 
         layout.addWidget(self.fahrer)
 
-        # Trailer
+        # Trailerkategorie
 
         layout.addWidget(QLabel("Trailerkategorie"))
 
@@ -153,7 +172,7 @@ class FahrzeugDialog(QDialog):
             "Standard",
             "Mega",
             "Koffer",
-            "Kühler"
+            "Kühler",
         ])
 
         layout.addWidget(self.trailer)
@@ -179,6 +198,7 @@ class FahrzeugDialog(QDialog):
                 background:#CFCFCF;
                 color:black;
             }
+
             QPushButton:hover{
                 background:#BBBBBB;
             }
@@ -205,6 +225,24 @@ class FahrzeugDialog(QDialog):
 
     # -----------------------------------------------------
 
+    def _naechste_sortierung(self):
+        """
+        Vergibt automatisch die nächste freie Sortierung.
+        Beispiel:
+        10 -> 20 -> 30 -> 40
+        """
+
+        letzte = self.session.query(
+            func.max(Fahrzeug.sortierung)
+        ).scalar()
+
+        if letzte is None:
+            self.sortierung.setValue(10)
+        else:
+            self.sortierung.setValue(letzte + 10)
+
+    # -----------------------------------------------------
+
     def _laden(self):
 
         self.sortierung.setValue(self.fahrzeug.sortierung)
@@ -228,7 +266,6 @@ class FahrzeugDialog(QDialog):
         kennzeichen = self.kennzeichen.text().strip().upper()
 
         if not kennzeichen:
-
             QMessageBox.warning(
                 self,
                 "Fehler",
