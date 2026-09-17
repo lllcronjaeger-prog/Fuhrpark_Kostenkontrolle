@@ -1,28 +1,28 @@
-import sys
+"""
+Release: v0.6.2
+Datei: main.py
+Komplette Datei
+"""
 
 from PySide6.QtWidgets import QApplication
 
 from database.database import Base, engine
 from database.migrations import run_migrations
-
-# Modelle importieren
-import database.models  # noqa: F401
-
 from ui.main_window import MainWindow
 
 
 def main():
 
-    Base.metadata.create_all(engine)
+    app = QApplication([])
+
+    Base.metadata.create_all(bind=engine)
 
     run_migrations()
-
-    app = QApplication(sys.argv)
 
     window = MainWindow()
     window.show()
 
-    sys.exit(app.exec())
+    app.exec()
 
 
 if __name__ == "__main__":
