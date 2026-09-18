@@ -17,11 +17,14 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QStyledItemDelegate,
     QLineEdit,
+    QGridLayout,
+    QSpinBox,
+    QDoubleSpinBox,
 )
 
 from config import COLORS
 from database.database import SessionLocal
-from database.models import Fahrzeug, Monat, Monatsdaten
+from database.models import Fahrzeug, Monat, Monatsdaten, MonatsKennzahlen
 from ui.app_state import app_state
 
 class DunklerEditor(QStyledItemDelegate):
@@ -91,16 +94,64 @@ class MonatsErfassung(QWidget):
         """)
         links.addWidget(titel)
 
-        self.table = QTableWidget(0,7)
+        # ---------------- Monatskopf ----------------
+        kopf = QFrame()
+        kopf.setStyleSheet("""
+            QFrame{
+                background:white;
+                border:1px solid #DDDDDD;
+                border-radius:14px;
+            }
+            QLabel{color:#17365D;font-weight:bold;}
+        """)
+        grid = QGridLayout(kopf)
+
+        self.zusatzfahrer = QSpinBox()
+        self.zusatztrailer = QSpinBox()
+
+        self.avg_fahrer_lp = QDoubleSpinBox()
+        self.avg_trailer_lp = QDoubleSpinBox()
+        self.avg_fahrer_et = QDoubleSpinBox()
+        self.avg_trailer_et = QDoubleSpinBox()
+
+        for box in [self.avg_fahrer_lp,self.avg_trailer_lp,self.avg_fahrer_et,self.avg_trailer_et]:
+            box.setMaximum(999999)
+            box.setSuffix(" €")
+            box.setStyleSheet("color:#202020;background:white;")
+
+        self.zusatzfahrer.setStyleSheet("color:#202020;background:white;")
+        self.zusatztrailer.setStyleSheet("color:#202020;background:white;")
+
+        grid.addWidget(QLabel("Zusatzfahrer"),0,0)
+        grid.addWidget(self.zusatzfahrer,0,1)
+        grid.addWidget(QLabel("Zusatztrailer"),0,2)
+        grid.addWidget(self.zusatztrailer,0,3)
+
+        grid.addWidget(QLabel("Ø Fahrer Leipzig"),1,0)
+        grid.addWidget(self.avg_fahrer_lp,1,1)
+        grid.addWidget(QLabel("Ø Trailerkosten Leipzig"),1,2)
+        grid.addWidget(self.avg_trailer_lp,1,3)
+
+        grid.addWidget(QLabel("Ø Fahrer Ettlingen"),2,0)
+        grid.addWidget(self.avg_fahrer_et,2,1)
+        grid.addWidget(QLabel("Ø Trailerkosten Ettlingen"),2,2)
+        grid.addWidget(self.avg_trailer_et,2,3)
+
+        self.status_label = QLabel("Status: In Bearbeitung (Speichern folgt im nächsten Schritt)")
+        grid.addWidget(self.status_label,3,0,1,4)
+
+        links.addWidget(kopf)
+
+        self.table = QTableWidget(0,9)
         self.table.setHorizontalHeaderLabels([
-            "Fahrzeug","Diesel","Maut","Werkstatt",
-            "Sonstiges","Umsatz","KM"
+            "Fahrzeug","Fahrer","Trailer","Diesel","Maut","Werkstatt","Sonstiges","Umsatz","KM"
         ])
 
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(34)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setItemDelegate(DunklerEditor())
 
         self.table.itemChanged.connect(self.speichern_und_berechnen)
 
@@ -233,15 +284,17 @@ class MonatsErfassung(QWidget):
             r=self.table.rowCount()
             self.table.insertRow(r)
 
-            name=ds.fahrzeug.kennzeichen
-
-            if ds.fahrzeug.fahreranzahl==2:
-                name+=" (2 Fahrer)"
-
-            item=QTableWidgetItem(name)
+            item=QTableWidgetItem(ds.fahrzeug.kennzeichen)
             item.setData(Qt.UserRole,ds.id)
-
             self.table.setItem(r,0,item)
+
+            fahrer=QTableWidgetItem(str(ds.fahrzeug.fahreranzahl))
+            fahrer.setFlags(Qt.ItemIsEnabled)
+            self.table.setItem(r,1,fahrer)
+
+            trailer=QTableWidgetItem(ds.fahrzeug.trailer_kategorie)
+            trailer.setFlags(Qt.ItemIsEnabled)
+            self.table.setItem(r,2,trailer)
 
             werte=[
                 ds.diesel,
@@ -252,7 +305,7 @@ class MonatsErfassung(QWidget):
                 ds.kilometer
             ]
 
-            for s,w in enumerate(werte,start=1):
+            for s,w in enumerate(werte,start=3):
 
                 z=QTableWidgetItem("" if w==0 else str(int(w)))
                 z.setData(Qt.UserRole,ds.id)
@@ -276,12 +329,12 @@ class MonatsErfassung(QWidget):
             return
 
         mapping={
-            1:"diesel",
-            2:"maut",
-            3:"werkstatt",
-            4:"sonstiges",
-            5:"umsatz",
-            6:"kilometer"
+            3:"diesel",
+            4:"maut",
+            5:"werkstatt",
+            6:"sonstiges",
+            7:"umsatz",
+            8:"kilometer"
         }
 
         if item.column() not in mapping:
