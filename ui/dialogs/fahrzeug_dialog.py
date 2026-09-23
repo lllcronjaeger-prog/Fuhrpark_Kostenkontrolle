@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QPushButton,
     QMessageBox,
+    QDoubleSpinBox,
+    QDateEdit,
 )
 
 from config import COLORS
@@ -36,7 +38,7 @@ class FahrzeugDialog(QDialog):
         self.session = SessionLocal()
 
         self.setWindowTitle("Fahrzeug")
-        self.resize(500, 520)
+        self.resize(560, 760)
 
         self.setStyleSheet(f"""
             QDialog {{
@@ -161,21 +163,56 @@ class FahrzeugDialog(QDialog):
 
         layout.addWidget(self.fahrer)
 
-        # Trailerkategorie
 
-        layout.addWidget(QLabel("Trailerkategorie"))
+        # Vertragsdaten
 
-        self.trailer = QComboBox()
-        self.trailer.setEditable(True)
+        layout.addWidget(QLabel("Inventar-ID"))
+        self.inventar = QLineEdit()
+        self.inventar.setPlaceholderText("z.B. ZM-0001")
+        layout.addWidget(self.inventar)
 
-        self.trailer.addItems([
-            "Standard",
-            "Mega",
-            "Koffer",
-            "Kühler",
-        ])
+        def geldfeld():
+            feld = QDoubleSpinBox()
+            feld.setMaximum(999999)
+            feld.setDecimals(2)
+            feld.setSuffix(" €")
+            return feld
 
-        layout.addWidget(self.trailer)
+        layout.addWidget(QLabel("Monatsmiete"))
+        self.monatsmiete = geldfeld()
+        layout.addWidget(self.monatsmiete)
+
+        layout.addWidget(QLabel("Steuer"))
+        self.steuer = geldfeld()
+        layout.addWidget(self.steuer)
+
+        layout.addWidget(QLabel("Versicherung"))
+        self.versicherung = geldfeld()
+        layout.addWidget(self.versicherung)
+
+        layout.addWidget(QLabel("Werkstattpauschale"))
+        self.werkstatt = geldfeld()
+        layout.addWidget(self.werkstatt)
+
+        layout.addWidget(QLabel("Kündigungsfrist (Monate)"))
+        self.kuendigung = QSpinBox()
+        self.kuendigung.setRange(0,24)
+        layout.addWidget(self.kuendigung)
+
+        layout.addWidget(QLabel("Vertragsbeginn"))
+        self.vertragsbeginn = QDateEdit()
+        self.vertragsbeginn.setCalendarPopup(True)
+        layout.addWidget(self.vertragsbeginn)
+
+        layout.addWidget(QLabel("Vertragsende"))
+        self.vertragsende = QDateEdit()
+        self.vertragsende.setCalendarPopup(True)
+        layout.addWidget(self.vertragsende)
+
+        layout.addWidget(QLabel("Rückgabedatum"))
+        self.rueckgabe = QDateEdit()
+        self.rueckgabe.setCalendarPopup(True)
+        layout.addWidget(self.rueckgabe)
 
         # Aktiv
 
@@ -255,8 +292,18 @@ class FahrzeugDialog(QDialog):
 
         self.fahrer.setCurrentText(str(self.fahrzeug.fahreranzahl))
 
-        self.trailer.setCurrentText(self.fahrzeug.trailer_kategorie)
-
+        self.inventar.setText(getattr(self.fahrzeug,"inventar_id",""))
+        self.monatsmiete.setValue(getattr(self.fahrzeug,"monatsmiete",0))
+        self.steuer.setValue(getattr(self.fahrzeug,"steuer",0))
+        self.versicherung.setValue(getattr(self.fahrzeug,"versicherung",0))
+        self.werkstatt.setValue(getattr(self.fahrzeug,"werkstatt_pauschale",0))
+        self.kuendigung.setValue(getattr(self.fahrzeug,"kuendigungsfrist_monate",0))
+        self.inventar.setText(getattr(self.fahrzeug,"inventar_id",""))
+        self.monatsmiete.setValue(getattr(self.fahrzeug,"monatsmiete",0))
+        self.steuer.setValue(getattr(self.fahrzeug,"steuer",0))
+        self.versicherung.setValue(getattr(self.fahrzeug,"versicherung",0))
+        self.werkstatt.setValue(getattr(self.fahrzeug,"werkstatt_pauschale",0))
+        self.kuendigung.setValue(getattr(self.fahrzeug,"kuendigungsfrist_monate",0))
         self.aktiv.setChecked(self.fahrzeug.aktiv)
 
     # -----------------------------------------------------
@@ -285,6 +332,14 @@ class FahrzeugDialog(QDialog):
             "fahrzeugtyp": self.fahrzeugtyp.currentText(),
             "standort": self.standort.currentText().strip(),
             "fahreranzahl": int(self.fahrer.currentText()),
-            "trailer_kategorie": self.trailer.currentText().strip(),
+            "inventar_id": self.inventar.text().strip().upper(),
+            "monatsmiete": self.monatsmiete.value(),
+            "steuer": self.steuer.value(),
+            "versicherung": self.versicherung.value(),
+            "werkstatt_pauschale": self.werkstatt.value(),
+            "kuendigungsfrist_monate": self.kuendigung.value(),
+            "vertragsbeginn": self.vertragsbeginn.date().toPython(),
+            "vertragsende": self.vertragsende.date().toPython(),
+            "rueckgabedatum": self.rueckgabe.date().toPython(),
             "aktiv": self.aktiv.isChecked(),
         }
