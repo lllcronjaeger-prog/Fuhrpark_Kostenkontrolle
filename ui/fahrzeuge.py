@@ -59,10 +59,10 @@ class FahrzeugeSeite(QWidget):
 
         layout.addLayout(toolbar)
 
-        self.table=QTableWidget(0,13)
+        self.table=QTableWidget(0,12)
         self.table.setHorizontalHeaderLabels([
             "Sort.","Inventar","Kennzeichen","Typ","Standort","Fahrer",
-            "Trailer","Miete","Steuer","Vers.","Werkstatt","Monatskosten","Status"
+            "Miete","Steuer","Vers.","Werkstatt","Monatskosten","Status"
         ])
         self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().setVisible(False)
@@ -83,25 +83,27 @@ class FahrzeugeSeite(QWidget):
             row=self.table.rowCount()
             self.table.insertRow(row)
 
-            miete=getattr(fahrzeug,"monatsmiete",0)
-            steuer=getattr(fahrzeug,"steuer",0)
-            vers=getattr(fahrzeug,"versicherung",0)
-            werk=getattr(fahrzeug,"werkstatt_pauschale",0)
+            miete=float(getattr(fahrzeug,"monatsmiete",0) or 0)
+            steuer=float(getattr(fahrzeug,"steuer",0) or 0)
+            vers=float(getattr(fahrzeug,"versicherung",0) or 0)
+            werk=float(getattr(fahrzeug,"werkstatt_pauschale",0) or 0)
             gesamt=miete+steuer+vers+werk
+
+            def euro(wert):
+                return f"{wert:,.2f} €".replace(",", "X").replace(".", ",").replace("X",".")
 
             werte=[
                 fahrzeug.sortierung,
-                getattr(fahrzeug,"inventar_id",""),
+                fahrzeug.inventar_id or "",
                 fahrzeug.kennzeichen,
                 fahrzeug.fahrzeugtyp,
                 fahrzeug.standort,
                 fahrzeug.fahreranzahl,
-                fahrzeug.trailer_kategorie,
-                f"{miete:,.2f} €".replace(",", "X").replace(".", ",").replace("X","."),
-                f"{steuer:,.2f} €".replace(",", "X").replace(".", ",").replace("X","."),
-                f"{vers:,.2f} €".replace(",", "X").replace(".", ",").replace("X","."),
-                f"{werk:,.2f} €".replace(",", "X").replace(".", ",").replace("X","."),
-                f"{gesamt:,.2f} €".replace(",", "X").replace(".", ",").replace("X","."),
+                euro(miete),
+                euro(steuer),
+                euro(vers),
+                euro(werk),
+                euro(gesamt),
                 "Aktiv" if fahrzeug.aktiv else "Inaktiv"
             ]
 

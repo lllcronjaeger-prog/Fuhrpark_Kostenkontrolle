@@ -292,7 +292,12 @@ class MonatsErfassung(QWidget):
             fahrer.setFlags(Qt.ItemIsEnabled)
             self.table.setItem(r,1,fahrer)
 
-            trailer=QTableWidgetItem(ds.fahrzeug.trailer_kategorie)
+            trailer_name = ""
+
+            if ds.fahrzeug.trailer is not None:
+                trailer_name = ds.fahrzeug.trailer.bezeichnung
+
+            trailer = QTableWidgetItem(trailer_name)
             trailer.setFlags(Qt.ItemIsEnabled)
             self.table.setItem(r,2,trailer)
 
